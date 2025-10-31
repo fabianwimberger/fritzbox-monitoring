@@ -270,14 +270,14 @@ class FritzboxCollector:
         # Part 2: Collect Connection Speed
         # ========================================
         try:
-            # Request connection speed data
+            # Request all speed data from netMoni page (has both current and max)
             response = requests.post(
                 f"http://{self.fritzbox_ip}/data.lua",
                 data={
                     "xhr": 1,
                     "sid": sid,
                     "lang": "de",
-                    "page": "netMoni",  # Network monitoring page
+                    "page": "netMoni",
                     "xhrId": "all",
                     "no_sidrenew": ""
                 },
@@ -285,23 +285,23 @@ class FritzboxCollector:
             )
             data = response.json()
 
-            # Extract speed data from sync_groups
+            # Extract speeds from sync_groups (all values in bytes/s, convert to bits/s)
             if 'data' in data and 'sync_groups' in data['data']:
                 sync_groups = data['data']['sync_groups']
                 if sync_groups and len(sync_groups) > 0:
                     sync_data = sync_groups[0]
 
-                    # Current speeds (already in bits per second)
+                    # Current traffic speeds
                     if 'us_bps_curr_max' in sync_data:
-                        self.connection_upload_speed_bps.set(float(sync_data['us_bps_curr_max']))
+                        self.connection_upload_speed_bps.set(float(sync_data['us_bps_curr_max']) * 8)
                     if 'ds_bps_curr_max' in sync_data:
-                        self.connection_download_speed_bps.set(float(sync_data['ds_bps_curr_max']))
+                        self.connection_download_speed_bps.set(float(sync_data['ds_bps_curr_max']) * 8)
 
-                    # Maximum contracted speeds (FritzBox API uses centibits/s, convert to bits/s)
-                    if 'upstream' in sync_data:
-                        self.connection_upload_max_bps.set(float(sync_data['upstream']) * 100)
-                    if 'downstream' in sync_data:
-                        self.connection_download_max_bps.set(float(sync_data['downstream']) * 100)
+                    # Maximum line capacity
+                    if 'us_bps_max' in sync_data:
+                        self.connection_upload_max_bps.set(float(sync_data['us_bps_max']) * 8)
+                    if 'ds_bps_max' in sync_data:
+                        self.connection_download_max_bps.set(float(sync_data['ds_bps_max']) * 8)
 
         except Exception as e:
             print(f"ERROR: Could not collect connection speed: {e}")

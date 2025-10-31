@@ -72,7 +72,7 @@
               }
             ]
           },
-          "unit": "bps"
+          "unit": "Bps"
         },
         "overrides": [
           {
@@ -128,7 +128,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "fritzbox_connection_download_speed_bps",
+          "expr": "fritzbox_connection_download_speed_bps / 8",
           "legendFormat": "Download",
           "refId": "A"
         },
@@ -137,7 +137,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "fritzbox_connection_upload_speed_bps",
+          "expr": "fritzbox_connection_upload_speed_bps / 8",
           "legendFormat": "Upload",
           "refId": "B"
         },
@@ -146,7 +146,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "fritzbox_connection_download_max_bps",
+          "expr": "fritzbox_connection_download_max_bps / 8",
           "legendFormat": "Download Max",
           "refId": "C"
         },
@@ -155,7 +155,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "fritzbox_connection_upload_max_bps",
+          "expr": "fritzbox_connection_upload_max_bps / 8",
           "legendFormat": "Upload Max",
           "refId": "D"
         }
