@@ -115,11 +115,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -376,11 +376,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -476,11 +476,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -563,11 +563,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -663,11 +663,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -750,11 +750,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -837,11 +837,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -924,11 +924,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -1063,11 +1063,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -1189,11 +1189,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
@@ -1276,11 +1276,11 @@
           "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
-          "showLegend": true
+          "showLegend": false
         },
         "tooltip": {
-          "mode": "multi",
-          "sort": "none"
+          "mode": "all",
+          "sort": "desc"
         }
       },
       "targets": [
