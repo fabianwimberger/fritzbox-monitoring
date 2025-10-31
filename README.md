@@ -110,7 +110,3 @@ HOMEASSISTANT_ENTITY=sensor.outdoor_temperature
 **No metrics appear**: Check logs with `docker-compose logs -f fritzbox-exporter` and verify FritzBox is reachable.
 
 **High error rates**: Check your cable signal quality. Downstream power should be -15 to +15 dBmV, upstream 35 to 51 dBmV, and SNR should be > 30 dB.
-
-## License
-
-MIT
