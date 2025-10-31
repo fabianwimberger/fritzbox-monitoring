@@ -1,0 +1,4 @@
+fritzconnection
+prometheus_client
+pingparsing
+requests

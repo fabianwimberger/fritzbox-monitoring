@@ -1,0 +1,29 @@
+services:
+  fritzbox-exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fritzbox-exporter:latest
+    container_name: fritzbox-exporter
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"  # Comment out if using reverse-proxy network only
+    networks:
+      - default
+      # - reverse-proxy  # Uncomment if you have an external reverse-proxy network
+    deploy:
+      resources:
+        limits:
+          memory: 500M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Uncomment if using external reverse-proxy network
+# networks:
+#   reverse-proxy:
+#     external: true
