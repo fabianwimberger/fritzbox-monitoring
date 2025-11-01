@@ -8,7 +8,16 @@ Prometheus exporter for monitoring FritzBox cable modem (DOCSIS) metrics, connec
 - Error tracking: corrected/uncorrected errors calculated as deltas
 - Connection speeds: current and maximum upload/download rates
 - Ping statistics: latency and packet loss monitoring
-- Optional Home Assistant integration for temperature correlation
+
+
+## Project Structure
+
+- `exporter.py`: The main Python script for the Prometheus exporter, utilizing the `fritzconnection` library.
+- `requirements.txt`: Lists the Python dependencies for the exporter.
+- `Dockerfile`: Defines the Docker image for the exporter.
+- `docker-compose.yml`: Orchestrates the exporter and other services (e.g., Prometheus, Grafana).
+- `grafana-dashboard.json`: A pre-built Grafana dashboard for visualizing the metrics.
+- `.env.example`: Example environment variables for configuration.
 
 ## Setup
 
@@ -93,15 +102,6 @@ Import `grafana-dashboard.json` to visualize all metrics including power levels,
 - `fritzbox_ping_packet_loss_percent` - Packet loss percentage
 
 
-## Optional: Home Assistant Integration
-
-To correlate cable issues with outdoor temperature, add these to your `.env`:
-
-```bash
-HOMEASSISTANT_URL=http://homeassistant:8123
-HOMEASSISTANT_TOKEN=your_long_lived_access_token
-HOMEASSISTANT_ENTITY=sensor.outdoor_temperature
-```
 
 ## Troubleshooting
 

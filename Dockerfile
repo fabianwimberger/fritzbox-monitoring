@@ -12,6 +12,8 @@ COPY exporter.py /app/exporter.py
 
 WORKDIR /app
 
+ENV PYTHONUNBUFFERED=1
+
 EXPOSE 8000
 
 CMD ["python", "exporter.py"]

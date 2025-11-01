@@ -1,3 +1,4 @@
 prometheus_client
 pingparsing
 requests
+fritzconnection
