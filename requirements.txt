@@ -1,0 +1,4 @@
+prometheus-client>=0.20.0
+pingparsing>=1.4.0
+requests>=2.31.0
+fritzconnection>=1.13.0

@@ -1,0 +1,14 @@
+services:
+  fritzbox-exporter:
+    build: .
+    container_name: fritzbox-exporter
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - fritzbox-exporter-data:/app/data
+
+volumes:
+  fritzbox-exporter-data:
