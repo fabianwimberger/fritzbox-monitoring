@@ -26,14 +26,6 @@ flowchart LR
 - **Grafana Dashboard**: ready-to-import dashboard included
 - **Docker Support**: lightweight Alpine-based image
 
-## Requirements
-
-- AVM FritzBox with DOCSIS cable connection
-- FritzBox user account (not necessarily admin, but needs access to cable info)
-- Docker & Docker Compose (recommended) or Python 3.9+
-- Prometheus (to scrape the exporter)
-- Grafana (optional, for the included dashboard)
-
 ## Quick Start
 
 ### 1. Clone the repository
@@ -148,6 +140,14 @@ scrape_configs:
       - targets: ['localhost:8000']
     scrape_interval: 30s
 ```
+
+## Requirements
+
+- AVM FritzBox with DOCSIS cable connection
+- FritzBox user account (not necessarily admin, but needs access to cable info)
+- Docker & Docker Compose (recommended) or Python 3.9+
+- Prometheus (to scrape the exporter)
+- Grafana (optional, for the included dashboard)
 
 ## Troubleshooting
 
