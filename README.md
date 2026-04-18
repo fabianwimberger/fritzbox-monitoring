@@ -8,6 +8,15 @@ A Prometheus exporter for AVM FritzBox cable modems. Collects DOCSIS signal qual
 
 AVM's web UI shows live DOCSIS values but keeps no history, which makes tracking down intermittent cable issues painful. The FritzBox exposes the same data via its internal endpoints. This exporter scrapes them, serves Prometheus metrics, and ships a Grafana dashboard so signal quality, speeds, and error counters stay visible over time.
 
+## Pipeline
+
+```mermaid
+flowchart LR
+    FB[FritzBox<br/>data.lua + TR-064] --> EX[Exporter<br/>:8000/metrics]
+    EX --> P[Prometheus]
+    P --> G[Grafana]
+```
+
 ## Features
 
 - **DOCSIS Signal Metrics**: upstream/downstream power levels, SNR, modulation (QAM), frequencies, latency
