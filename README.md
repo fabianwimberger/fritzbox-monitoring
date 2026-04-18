@@ -1,6 +1,21 @@
 # FritzBox Cable Monitoring
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Prometheus exporter for AVM FritzBox cable modems. Collects DOCSIS signal quality metrics, connection speeds, and ping latency.
+
+## Background
+
+AVM's web UI shows live DOCSIS values but keeps no history, which makes tracking down intermittent cable issues painful. The FritzBox exposes the same data via its internal endpoints. This exporter scrapes them, serves Prometheus metrics, and ships a Grafana dashboard so signal quality, speeds, and error counters stay visible over time.
+
+## Pipeline
+
+```mermaid
+flowchart LR
+    FB[FritzBox<br/>data.lua + TR-064] --> EX[Exporter<br/>:8000/metrics]
+    EX --> P[Prometheus]
+    P --> G[Grafana]
+```
 
 ## Features
 
@@ -10,14 +25,6 @@ A Prometheus exporter for AVM FritzBox cable modems. Collects DOCSIS signal qual
 - **Ping Monitoring**: RTT measurements to a configurable target
 - **Grafana Dashboard**: ready-to-import dashboard included
 - **Docker Support**: lightweight Alpine-based image
-
-## Requirements
-
-- AVM FritzBox with DOCSIS cable connection
-- FritzBox user account (not necessarily admin, but needs access to cable info)
-- Docker & Docker Compose (recommended) or Python 3.9+
-- Prometheus (to scrape the exporter)
-- Grafana (optional, for the included dashboard)
 
 ## Quick Start
 
@@ -133,6 +140,14 @@ scrape_configs:
       - targets: ['localhost:8000']
     scrape_interval: 30s
 ```
+
+## Requirements
+
+- AVM FritzBox with DOCSIS cable connection
+- FritzBox user account (not necessarily admin, but needs access to cable info)
+- Docker & Docker Compose (recommended) or Python 3.9+
+- Prometheus (to scrape the exporter)
+- Grafana (optional, for the included dashboard)
 
 ## Troubleshooting
 
