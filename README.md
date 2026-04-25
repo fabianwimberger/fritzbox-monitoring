@@ -1,5 +1,6 @@
 # FritzBox Cable Monitoring
 
+[![CI](https://github.com/fabianwimberger/fritzbox-monitoring/actions/workflows/ci.yml/badge.svg)](https://github.com/fabianwimberger/fritzbox-monitoring/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A Prometheus exporter for AVM FritzBox cable modems. Collects DOCSIS signal quality metrics, connection speeds, and ping latency.
@@ -19,12 +20,12 @@ flowchart LR
 
 ## Features
 
-- **DOCSIS Signal Metrics**: upstream/downstream power levels, SNR, modulation (QAM), frequencies, latency
-- **Error Tracking**: corrected and uncorrected downstream error counters (persisted across restarts)
-- **Connection Speeds**: real-time upload/download speeds and max link rates via TR-064
-- **Ping Monitoring**: RTT measurements to a configurable target
-- **Grafana Dashboard**: ready-to-import dashboard included
-- **Docker Support**: lightweight Alpine-based image
+- **DOCSIS signal metrics** — upstream/downstream power levels, SNR, modulation (QAM), frequencies, latency
+- **Error tracking** — corrected and uncorrected downstream error counters, persisted across restarts
+- **Connection speeds** — real-time upload/download speeds and max link rates via TR-064
+- **Ping monitoring** — RTT measurements to a configurable target
+- **Grafana dashboard** — ready-to-import dashboard included
+- **Docker** — lightweight Alpine-based image
 
 ## Quick Start
 
