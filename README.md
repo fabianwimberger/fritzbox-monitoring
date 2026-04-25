@@ -104,6 +104,11 @@ All configuration is done via environment variables:
 
 ## Grafana Dashboard
 
+<p align="center">
+  <img src="assets/dashboard.png" width="100%" alt="FritzBox Cable Monitoring dashboard">
+  <br><em>FritzBox Cable Monitoring dashboard in Grafana</em>
+</p>
+
 Import `grafana-dashboard.json` into your Grafana instance. The dashboard includes panels for:
 
 - Connection speed (current vs max)
