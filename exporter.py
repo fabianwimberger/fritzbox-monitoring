@@ -402,7 +402,7 @@ class FritzboxCollector:
                 response.raise_for_status()
                 root = ET.fromstring(response.text)
                 for item in root.findall("Item"):
-                    mac = (item.findtext("MACAddress") or "").lower().strip()
+                    mac = (item.findtext("MACAddress") or "").upper().strip()
                     if not mac:
                         continue
                     hosts[mac] = {
@@ -419,7 +419,7 @@ class FritzboxCollector:
                         entry = self._fc.call_action(
                             "Hosts1", "GetGenericHostEntry", NewIndex=i
                         )
-                        mac = (entry.get("NewMACAddress") or "").lower().strip()
+                        mac = (entry.get("NewMACAddress") or "").upper().strip()
                         if not mac:
                             continue
                         hosts[mac] = {
