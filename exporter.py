@@ -10,6 +10,7 @@ import time
 import hashlib
 import logging
 import requests
+import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from prometheus_client import start_http_server, Gauge, Counter, REGISTRY
 from pingparsing import PingParsing, PingTransmitter
@@ -134,6 +135,15 @@ class FritzboxCollector:
         self.ping_rtt_max = Gauge(
             "fritzbox_ping_rtt_max_ms", "Ping max RTT in ms", ["target"]
         )
+
+        # LAN Host metric — enables MAC -> name/IP joins in other dashboards
+        self.lan_host = Gauge(
+            "fritzbox_lan_host",
+            "Known LAN host (1 if currently visible to FritzBox)",
+            ["mac", "ip", "name", "interface", "active"],
+        )
+
+        self._lan_host_cycle = 0
 
     def get_sid(self, force_refresh=False):
         """Authenticate with FritzBox and get Session ID. Cached until invalid."""
@@ -379,6 +389,62 @@ class FritzboxCollector:
             logger.error(f"Ping collection failed: {e}")
             return None
 
+    def collect_lan_hosts(self):
+        try:
+            hosts = {}
+            try:
+                path = self._fc.call_action("Hosts1", "X_AVM-DE_GetHostListPath")[
+                    "NewX_AVM-DE_HostListPath"
+                ]
+                response = self._http_session.get(
+                    f"http://{self.fritzbox_ip}:49000{path}", timeout=10
+                )
+                response.raise_for_status()
+                root = ET.fromstring(response.text)
+                for item in root.findall("Item"):
+                    mac = (item.findtext("MACAddress") or "").lower().strip()
+                    if not mac:
+                        continue
+                    hosts[mac] = {
+                        "ip": item.findtext("IPAddress") or "",
+                        "name": item.findtext("HostName") or "",
+                        "interface": item.findtext("InterfaceType") or "",
+                        "active": str(int((item.findtext("Active") or "0") == "1")),
+                    }
+            except Exception:
+                count_result = self._fc.call_action("Hosts1", "GetHostNumberOfEntries")
+                count = int(count_result.get("NewHostNumberOfEntries", 0))
+                for i in range(count):
+                    try:
+                        entry = self._fc.call_action(
+                            "Hosts1", "GetGenericHostEntry", NewIndex=i
+                        )
+                        mac = (entry.get("NewMACAddress") or "").lower().strip()
+                        if not mac:
+                            continue
+                        hosts[mac] = {
+                            "ip": entry.get("NewIPAddress") or "",
+                            "name": entry.get("NewHostName") or "",
+                            "interface": entry.get("NewInterfaceType") or "",
+                            "active": str(int(bool(entry.get("NewActive")))),
+                        }
+                    except Exception:
+                        continue
+
+            self.lan_host.clear()
+            for mac, h in hosts.items():
+                self.lan_host.labels(
+                    mac=mac,
+                    ip=h["ip"],
+                    name=h["name"],
+                    interface=h["interface"],
+                    active=h["active"],
+                ).set(1)
+
+            logger.info(f"LAN host collection: {len(hosts)} hosts")
+        except Exception as e:
+            logger.warning(f"LAN host collection failed: {e}")
+
     def collect(self):
         """Main collection method called by Prometheus scraper."""
         total_start = time.time()
@@ -406,6 +472,14 @@ class FritzboxCollector:
 
         # Persist error state after each collection
         self._save_state()
+
+        self._lan_host_cycle = (self._lan_host_cycle + 1) % 6
+        if self._lan_host_cycle == 0:
+            try:
+                self.collect_lan_hosts()
+            except Exception as e:
+                logger.warning(f"LAN host collection failed: {e}")
+
         return []
 
     def _load_state(self, key, default):
