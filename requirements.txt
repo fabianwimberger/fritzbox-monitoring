@@ -1,4 +1,4 @@
 prometheus-client>=0.25.0
-pingparsing>=1.4.0
+pingparsing>=1.4.2
 requests>=2.33.1
 fritzconnection>=1.15.1
