@@ -3,6 +3,8 @@
 [![CI](https://github.com/fabianwimberger/fritzbox-monitoring/actions/workflows/ci.yml/badge.svg)](https://github.com/fabianwimberger/fritzbox-monitoring/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+> **⚠️ Disclaimer**: This is an independent, community-created project. It is **not affiliated with, endorsed by, or sponsored by AVM GmbH**. "AVM", "FRITZ!Box", and associated logos are trademarks of AVM GmbH. Use of these names is solely for identification and compatibility purposes. Use at your own risk.
+
 A Prometheus exporter for AVM FritzBox cable modems. Collects DOCSIS signal quality metrics, connection speeds, and ping latency.
 
 ## Background
