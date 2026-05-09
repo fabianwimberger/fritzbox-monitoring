@@ -148,7 +148,7 @@ class FritzboxCollector:
         self.lan_host = Gauge(
             "fritzbox_lan_host",
             "Known LAN host active state",
-            ["mac"],
+            ["mac", "name", "ip", "interface"],
         )
 
     def get_sid(self, force_refresh=False):
@@ -501,7 +501,12 @@ class FritzboxCollector:
 
             self.lan_host.clear()
             for mac, h in hosts.items():
-                self.lan_host.labels(mac=mac).set(float(h["active"]))
+                self.lan_host.labels(
+                    mac=mac,
+                    name=h["name"],
+                    ip=h["ip"],
+                    interface=h["interface"],
+                ).set(float(h["active"]))
 
             logger.info("LAN host collection: %d hosts", len(hosts))
         except Exception as e:
