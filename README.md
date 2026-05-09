@@ -113,7 +113,7 @@ All configuration is done via environment variables:
 
 | Metric | Labels | Description |
 |--------|--------|-------------|
-| `fritzbox_lan_host` | `mac` | `1` when the FritzBox reports the host as active, otherwise `0` |
+| `fritzbox_lan_host` | `mac`, `name`, `ip`, `interface` | `1` when the FritzBox reports the host as active, otherwise `0` |
 
 ## Grafana Dashboard
 
