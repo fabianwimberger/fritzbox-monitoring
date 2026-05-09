@@ -63,7 +63,9 @@ All configuration is done via environment variables:
 | `FRITZBOX_USER` | *(required)* | FritzBox username |
 | `FRITZBOX_PASSWORD` | *(required)* | FritzBox password |
 | `PING_TARGET` | `1.1.1.1` | Host to ping for latency measurement |
-| `STATE_FILE` | `/tmp/fritzbox_exporter_state.json` | Path to error-counter state file |
+| `PORT` | `8000` | Exporter HTTP port |
+| `STATE_FILE` | `/app/data/fritzbox_exporter_state.json` | Path to error-counter state file |
+| `LAN_HOST_INTERVAL_SECONDS` | `180` | Minimum time between LAN host refreshes |
 
 ## Metrics
 
@@ -87,6 +89,8 @@ All configuration is done via environment variables:
 | `fritzbox_docsis_downstream_latency_ms` | `channel_id` | Downstream latency (ms) |
 | `fritzbox_docsis_downstream_corrected_errors_total` | `channel_id` | Corrected errors (Counter) |
 | `fritzbox_docsis_downstream_uncorrected_errors_total` | `channel_id` | Uncorrected errors (Counter) |
+| `fritzbox_up` | none | `1` when the last FritzBox DOCSIS scrape succeeded |
+| `fritzbox_scrape_duration_seconds` | none | Duration of the last FritzBox scrape |
 
 ### Connection Speeds
 
@@ -104,6 +108,12 @@ All configuration is done via environment variables:
 | `fritzbox_ping_rtt_avg_ms` | `target` | Average RTT (ms) |
 | `fritzbox_ping_rtt_min_ms` | `target` | Min RTT (ms) |
 | `fritzbox_ping_rtt_max_ms` | `target` | Max RTT (ms) |
+
+### LAN Hosts
+
+| Metric | Labels | Description |
+|--------|--------|-------------|
+| `fritzbox_lan_host` | `mac` | `1` when the FritzBox reports the host as active, otherwise `0` |
 
 ## Grafana Dashboard
 
