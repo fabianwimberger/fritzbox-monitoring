@@ -10,6 +10,7 @@ import time
 import hashlib
 import logging
 import requests
+import threading
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlencode
@@ -30,15 +31,19 @@ class FritzboxCollector:
         self.fritzbox_user = os.environ.get("FRITZBOX_USER")
         self.fritzbox_password = os.environ.get("FRITZBOX_PASSWORD")
         self.ping_target = os.environ.get("PING_TARGET", "1.1.1.1")
+        self.port = int(os.environ.get("PORT", "8000"))
+        self.lan_host_interval_seconds = int(
+            os.environ.get("LAN_HOST_INTERVAL_SECONDS", "180")
+        )
 
         self._cached_sid = None
         self._http_session = requests.Session()
         self._fc: FritzConnection | None = None
         self._qam_pattern = re.compile(r"(\d+)")
-        # Pre-compile frequency pattern for robust parsing (handles "36.000.000 Hz", "36,000,000", etc.)
         self._freq_pattern = re.compile(r"[\d.,]+")
+        self._collect_lock = threading.Lock()
+        self._last_lan_host_collection = 0.0
 
-        # Thread pool for concurrent collection - created once and reused
         self._executor = ThreadPoolExecutor(max_workers=2)
 
         # DOCSIS Upstream Metrics
@@ -99,12 +104,20 @@ class FritzboxCollector:
             ["channel_id"],
         )
 
-        # State file for persisting error counts across restarts
         self._state_file = os.environ.get(
-            "STATE_FILE", "/tmp/fritzbox_exporter_state.json"
+            "STATE_FILE", "/app/data/fritzbox_exporter_state.json"
         )
         self._previous_corr_errors = self._load_state("corr_errors", {})
         self._previous_uncorr_errors = self._load_state("uncorr_errors", {})
+
+        self.up = Gauge(
+            "fritzbox_up",
+            "Whether the last FritzBox DOCSIS scrape succeeded",
+        )
+        self.scrape_duration_seconds = Gauge(
+            "fritzbox_scrape_duration_seconds",
+            "Duration of the last FritzBox scrape in seconds",
+        )
 
         # Connection Speed Metrics
         self.connection_upload_speed_bps = Gauge(
@@ -134,11 +147,9 @@ class FritzboxCollector:
         # LAN Host metric — enables MAC -> name/IP joins in other dashboards
         self.lan_host = Gauge(
             "fritzbox_lan_host",
-            "Known LAN host (1 if currently visible to FritzBox)",
-            ["mac", "ip", "name", "interface", "active"],
+            "Known LAN host active state",
+            ["mac"],
         )
-
-        self._lan_host_cycle = 0
 
     def get_sid(self, force_refresh=False):
         """Authenticate with FritzBox and get Session ID. Cached until invalid."""
@@ -220,7 +231,8 @@ class FritzboxCollector:
             docsis = self._call_data_lua(sid, "docInfo")
             timings.append(f"docsis={(time.time() - docsis_start) * 1000:.0f}ms")
             if not docsis:
-                return
+                self.up.set(0)
+                return timings
 
             docsis_version = "docsis30"
             if not docsis.get("data", {}).get("channelUs", {}).get(docsis_version):
@@ -250,15 +262,22 @@ class FritzboxCollector:
             downstream_channels = (
                 docsis.get("data", {}).get("channelDs", {}).get(docsis_version, [])
             )
+            current_downstream_channel_ids = set()
             for channel in downstream_channels:
                 try:
+                    current_downstream_channel_ids.add(
+                        str(channel.get("channelID", "unknown"))
+                    )
                     self._process_downstream_channel(channel)
                 except Exception as e:
                     channel_id = channel.get("channelID", "unknown")
                     logger.warning(f"Skipping downstream channel {channel_id}: {e}")
+            self._prune_downstream_channels(current_downstream_channel_ids)
+            self.up.set(1)
 
         except Exception as e:
             logger.error(f"DOCSIS collection failed: {e}")
+            self.up.set(0)
 
         speed_timings = self.collect_connection_speeds()
         if speed_timings:
@@ -267,7 +286,7 @@ class FritzboxCollector:
 
     def _process_upstream_channel(self, channel: dict) -> None:
         """Process a single upstream channel."""
-        channel_id = channel.get("channelID", "unknown")
+        channel_id = str(channel.get("channelID", "unknown"))
         if "powerLevel" in channel:
             self.docsis_power_level_up.labels(channel_id=channel_id).set(
                 float(channel["powerLevel"])
@@ -298,7 +317,7 @@ class FritzboxCollector:
 
     def _process_downstream_channel(self, channel: dict) -> None:
         """Process a single downstream channel."""
-        channel_id = channel.get("channelID", "unknown")
+        channel_id = str(channel.get("channelID", "unknown"))
         if "powerLevel" in channel:
             self.docsis_power_level_down.labels(channel_id=channel_id).set(
                 float(channel["powerLevel"])
@@ -333,16 +352,35 @@ class FritzboxCollector:
         if "corrErrors" in channel:
             current = int(channel["corrErrors"])
             previous = self._previous_corr_errors.get(channel_id, current)
-            if current >= previous and (delta := current - previous) > 0:
+            delta = current - previous if current >= previous else current
+            if delta > 0:
                 self.docsis_corr_errors.labels(channel_id=channel_id).inc(delta)
             self._previous_corr_errors[channel_id] = current
 
         if "nonCorrErrors" in channel:
             current = int(channel["nonCorrErrors"])
             previous = self._previous_uncorr_errors.get(channel_id, current)
-            if current >= previous and (delta := current - previous) > 0:
+            delta = current - previous if current >= previous else current
+            if delta > 0:
                 self.docsis_uncorr_errors.labels(channel_id=channel_id).inc(delta)
             self._previous_uncorr_errors[channel_id] = current
+
+    def _prune_downstream_channels(self, current_channel_ids: set[str]) -> None:
+        stale_corr = set(self._previous_corr_errors) - current_channel_ids
+        stale_uncorr = set(self._previous_uncorr_errors) - current_channel_ids
+        for channel_id in stale_corr:
+            self._previous_corr_errors.pop(channel_id, None)
+            self._remove_metric_label(self.docsis_corr_errors, channel_id)
+        for channel_id in stale_uncorr:
+            self._previous_uncorr_errors.pop(channel_id, None)
+            self._remove_metric_label(self.docsis_uncorr_errors, channel_id)
+
+    @staticmethod
+    def _remove_metric_label(metric, *label_values) -> None:
+        try:
+            metric.remove(*label_values)
+        except (AttributeError, KeyError):
+            return
 
     def _get_fritz_connection(self) -> FritzConnection:
         """Return a FritzConnection, creating it lazily if needed."""
@@ -463,13 +501,7 @@ class FritzboxCollector:
 
             self.lan_host.clear()
             for mac, h in hosts.items():
-                self.lan_host.labels(
-                    mac=mac,
-                    ip=h["ip"],
-                    name=h["name"],
-                    interface=h["interface"],
-                    active=h["active"],
-                ).set(1)
+                self.lan_host.labels(mac=mac).set(float(h["active"]))
 
             logger.info("LAN host collection: %d hosts", len(hosts))
         except Exception as e:
@@ -477,40 +509,49 @@ class FritzboxCollector:
 
     def collect(self):
         """Main collection method called by Prometheus scraper."""
+        if not self._collect_lock.acquire(blocking=False):
+            logger.warning("Skipping overlapping scrape")
+            return []
+
         total_start = time.time()
         timings = []
 
-        collectors = [self.collect_fritzbox_data_all, self.collect_ping_data]
+        try:
+            collectors = [self.collect_fritzbox_data_all, self.collect_ping_data]
 
-        # Use the pre-created thread pool executor
-        futures = {
-            self._executor.submit(collector): collector for collector in collectors
-        }
-        for future in as_completed(futures):
-            try:
-                result = future.result()
-                if isinstance(result, list):
-                    timings.extend(result)
-                elif result:
-                    timings.append(result)
-            except Exception as e:
-                logger.error(f"Collection error: {e}")
+            futures = {
+                self._executor.submit(collector): collector for collector in collectors
+            }
+            for future in as_completed(futures):
+                try:
+                    result = future.result()
+                    if isinstance(result, list):
+                        timings.extend(result)
+                    elif result:
+                        timings.append(result)
+                except Exception as e:
+                    logger.error(f"Collection error: {e}")
 
-        total_time = (time.time() - total_start) * 1000
-        timings_str = ", ".join(timings) if timings else "no data"
-        logger.info(f"[{total_time:.0f}ms] {timings_str}")
+            total_time = time.time() - total_start
+            self.scrape_duration_seconds.set(total_time)
+            timings_str = ", ".join(timings) if timings else "no data"
+            logger.info(f"[{total_time * 1000:.0f}ms] {timings_str}")
 
-        # Persist error state after each collection
-        self._save_state()
+            self._save_state()
 
-        self._lan_host_cycle = (self._lan_host_cycle + 1) % 6
-        if self._lan_host_cycle == 0:
-            try:
-                self.collect_lan_hosts()
-            except Exception as e:
-                logger.warning(f"LAN host collection failed: {e}")
+            if (
+                time.monotonic() - self._last_lan_host_collection
+                >= self.lan_host_interval_seconds
+            ):
+                try:
+                    self.collect_lan_hosts()
+                    self._last_lan_host_collection = time.monotonic()
+                except Exception as e:
+                    logger.warning(f"LAN host collection failed: {e}")
 
-        return []
+            return []
+        finally:
+            self._collect_lock.release()
 
     def _load_state(self, key, default):
         """Load persisted state from file."""
@@ -548,17 +589,31 @@ class FritzboxCollector:
         Returns frequency as integer (Hz) or None if parsing fails.
         """
         try:
-            # Extract numeric part (digits, dots, commas)
             match = self._freq_pattern.search(str(freq_str))
             if not match:
                 return None
 
             num_str = match.group(0)
-            # Remove all separators and convert to int
-            # Assumption: last separator indicates decimal if present
-            # For Hz values, we expect integers, so remove all . and ,
-            cleaned = num_str.replace(".", "").replace(",", "")
-            return int(cleaned)
+            unit = str(freq_str).lower()
+            multiplier = 1
+            if "ghz" in unit:
+                multiplier = 1_000_000_000
+            elif "mhz" in unit:
+                multiplier = 1_000_000
+            elif "khz" in unit:
+                multiplier = 1_000
+
+            separators = [char for char in num_str if char in ".,"]
+            if len(separators) > 1:
+                value = float(num_str.replace(".", "").replace(",", ""))
+                if multiplier > 1 and value >= multiplier:
+                    multiplier = 1
+            elif separators and multiplier > 1:
+                value = float(num_str.replace(",", "."))
+            else:
+                value = float(num_str.replace(".", "").replace(",", ""))
+
+            return int(value * multiplier)
         except (ValueError, AttributeError) as e:
             logger.warning(f"Failed to parse frequency '{freq_str}': {e}")
             return None
@@ -567,8 +622,8 @@ class FritzboxCollector:
 if __name__ == "__main__":
     collector = FritzboxCollector()
     REGISTRY.register(collector)
-    start_http_server(8000)
-    logger.info("FritzBox exporter started on port 8000")
+    start_http_server(collector.port)
+    logger.info("FritzBox exporter started on port %d", collector.port)
 
     try:
         while True:
