@@ -12,6 +12,7 @@ import logging
 import requests
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from urllib.parse import urlencode
 from prometheus_client import start_http_server, Gauge, Counter, REGISTRY
 from pingparsing import PingParsing, PingTransmitter
 from fritzconnection import FritzConnection
@@ -32,13 +33,7 @@ class FritzboxCollector:
 
         self._cached_sid = None
         self._http_session = requests.Session()
-        self._fc = FritzConnection(
-            address=self.fritzbox_ip,
-            user=self.fritzbox_user,
-            password=self.fritzbox_password,
-            timeout=10.0,
-            use_cache=True,
-        )
+        self._fc: FritzConnection | None = None
         self._qam_pattern = re.compile(r"(\d+)")
         # Pre-compile frequency pattern for robust parsing (handles "36.000.000 Hz", "36,000,000", etc.)
         self._freq_pattern = re.compile(r"[\d.,]+")
@@ -154,14 +149,23 @@ class FritzboxCollector:
             response = self._http_session.get(
                 f"http://{self.fritzbox_ip}/login_sid.lua", timeout=5
             )
-            challenge = response.text.split("<Challenge>")[1].split("</Challenge>")[0]
+            root = ET.fromstring(response.text)
+            challenge = root.findtext("Challenge", "")
+            if not challenge:
+                logger.error("No challenge in FritzBox login response")
+                return None
 
             challenge_response = f"{challenge}-{self.fritzbox_password}"
             md5_hash = hashlib.md5(challenge_response.encode("utf-16le")).hexdigest()
 
-            auth_url = f"http://{self.fritzbox_ip}/login_sid.lua?username={self.fritzbox_user}&response={challenge}-{md5_hash}"
+            params = {
+                "username": self.fritzbox_user or "",
+                "response": f"{challenge}-{md5_hash}",
+            }
+            auth_url = f"http://{self.fritzbox_ip}/login_sid.lua?{urlencode(params)}"
             response = self._http_session.get(auth_url, timeout=5)
-            sid = response.text.split("<SID>")[1].split("</SID>")[0]
+            root = ET.fromstring(response.text)
+            sid = root.findtext("SID", "")
 
             if sid and sid != "0000000000000000":
                 self._cached_sid = sid
@@ -237,88 +241,21 @@ class FritzboxCollector:
                 docsis.get("data", {}).get("channelUs", {}).get(docsis_version, [])
             )
             for channel in upstream_channels:
-                channel_id = channel.get("channelID", "unknown")
-                if "powerLevel" in channel:
-                    self.docsis_power_level_up.labels(channel_id=channel_id).set(
-                        float(channel["powerLevel"])
-                    )
-                if "frequency" in channel:
-                    freq = self._parse_frequency(channel["frequency"])
-                    if freq is not None:
-                        self.docsis_frequency_up.labels(channel_id=channel_id).set(freq)
-
-                modulation_field = (
-                    channel.get("type")
-                    or channel.get("modulation")
-                    or channel.get("mod")
-                    or channel.get("qam")
-                )
-                if modulation_field:
-                    match = self._qam_pattern.search(str(modulation_field))
-                    if match:
-                        self.docsis_modulation_up.labels(channel_id=channel_id).set(
-                            int(match.group(1))
-                        )
-
-                if "multiplex" in channel:
-                    multiplex_map = {"ATDMA": 1, "SCDMA": 2, "TDMA": 3}
-                    self.docsis_multiplex_up.labels(
-                        channel_id=channel_id, multiplex=channel["multiplex"]
-                    ).set(multiplex_map.get(channel["multiplex"], 0))
+                try:
+                    self._process_upstream_channel(channel)
+                except Exception as e:
+                    channel_id = channel.get("channelID", "unknown")
+                    logger.warning(f"Skipping upstream channel {channel_id}: {e}")
 
             downstream_channels = (
                 docsis.get("data", {}).get("channelDs", {}).get(docsis_version, [])
             )
             for channel in downstream_channels:
-                channel_id = channel.get("channelID", "unknown")
-                if "powerLevel" in channel:
-                    self.docsis_power_level_down.labels(channel_id=channel_id).set(
-                        float(channel["powerLevel"])
-                    )
-                if "frequency" in channel:
-                    freq = self._parse_frequency(channel["frequency"])
-                    if freq is not None:
-                        self.docsis_frequency_down.labels(channel_id=channel_id).set(
-                            freq
-                        )
-
-                modulation_field = (
-                    channel.get("type")
-                    or channel.get("modulation")
-                    or channel.get("mod")
-                    or channel.get("qam")
-                )
-                if modulation_field:
-                    match = self._qam_pattern.search(str(modulation_field))
-                    if match:
-                        self.docsis_modulation_down.labels(channel_id=channel_id).set(
-                            int(match.group(1))
-                        )
-
-                if "mse" in channel:
-                    self.docsis_snr_down.labels(channel_id=channel_id).set(
-                        float(channel["mse"])
-                    )
-                if "latency" in channel:
-                    self.docsis_latency_down.labels(channel_id=channel_id).set(
-                        float(channel["latency"])
-                    )
-
-                if "corrErrors" in channel:
-                    current = int(channel["corrErrors"])
-                    previous = self._previous_corr_errors.get(channel_id, current)
-                    if current >= previous and (delta := current - previous) > 0:
-                        self.docsis_corr_errors.labels(channel_id=channel_id).inc(delta)
-                    self._previous_corr_errors[channel_id] = current
-
-                if "nonCorrErrors" in channel:
-                    current = int(channel["nonCorrErrors"])
-                    previous = self._previous_uncorr_errors.get(channel_id, current)
-                    if current >= previous and (delta := current - previous) > 0:
-                        self.docsis_uncorr_errors.labels(channel_id=channel_id).inc(
-                            delta
-                        )
-                    self._previous_uncorr_errors[channel_id] = current
+                try:
+                    self._process_downstream_channel(channel)
+                except Exception as e:
+                    channel_id = channel.get("channelID", "unknown")
+                    logger.warning(f"Skipping downstream channel {channel_id}: {e}")
 
         except Exception as e:
             logger.error(f"DOCSIS collection failed: {e}")
@@ -328,11 +265,103 @@ class FritzboxCollector:
             timings.append(speed_timings)
         return timings
 
+    def _process_upstream_channel(self, channel: dict) -> None:
+        """Process a single upstream channel."""
+        channel_id = channel.get("channelID", "unknown")
+        if "powerLevel" in channel:
+            self.docsis_power_level_up.labels(channel_id=channel_id).set(
+                float(channel["powerLevel"])
+            )
+        if "frequency" in channel:
+            freq = self._parse_frequency(channel["frequency"])
+            if freq is not None:
+                self.docsis_frequency_up.labels(channel_id=channel_id).set(freq)
+
+        modulation_field = (
+            channel.get("type")
+            or channel.get("modulation")
+            or channel.get("mod")
+            or channel.get("qam")
+        )
+        if modulation_field:
+            match = self._qam_pattern.search(str(modulation_field))
+            if match:
+                self.docsis_modulation_up.labels(channel_id=channel_id).set(
+                    int(match.group(1))
+                )
+
+        if "multiplex" in channel:
+            multiplex_map = {"ATDMA": 1, "SCDMA": 2, "TDMA": 3}
+            self.docsis_multiplex_up.labels(
+                channel_id=channel_id, multiplex=channel["multiplex"]
+            ).set(multiplex_map.get(channel["multiplex"], 0))
+
+    def _process_downstream_channel(self, channel: dict) -> None:
+        """Process a single downstream channel."""
+        channel_id = channel.get("channelID", "unknown")
+        if "powerLevel" in channel:
+            self.docsis_power_level_down.labels(channel_id=channel_id).set(
+                float(channel["powerLevel"])
+            )
+        if "frequency" in channel:
+            freq = self._parse_frequency(channel["frequency"])
+            if freq is not None:
+                self.docsis_frequency_down.labels(channel_id=channel_id).set(freq)
+
+        modulation_field = (
+            channel.get("type")
+            or channel.get("modulation")
+            or channel.get("mod")
+            or channel.get("qam")
+        )
+        if modulation_field:
+            match = self._qam_pattern.search(str(modulation_field))
+            if match:
+                self.docsis_modulation_down.labels(channel_id=channel_id).set(
+                    int(match.group(1))
+                )
+
+        if "mse" in channel:
+            self.docsis_snr_down.labels(channel_id=channel_id).set(
+                float(channel["mse"])
+            )
+        if "latency" in channel:
+            self.docsis_latency_down.labels(channel_id=channel_id).set(
+                float(channel["latency"])
+            )
+
+        if "corrErrors" in channel:
+            current = int(channel["corrErrors"])
+            previous = self._previous_corr_errors.get(channel_id, current)
+            if current >= previous and (delta := current - previous) > 0:
+                self.docsis_corr_errors.labels(channel_id=channel_id).inc(delta)
+            self._previous_corr_errors[channel_id] = current
+
+        if "nonCorrErrors" in channel:
+            current = int(channel["nonCorrErrors"])
+            previous = self._previous_uncorr_errors.get(channel_id, current)
+            if current >= previous and (delta := current - previous) > 0:
+                self.docsis_uncorr_errors.labels(channel_id=channel_id).inc(delta)
+            self._previous_uncorr_errors[channel_id] = current
+
+    def _get_fritz_connection(self) -> FritzConnection:
+        """Return a FritzConnection, creating it lazily if needed."""
+        if self._fc is None:
+            self._fc = FritzConnection(
+                address=self.fritzbox_ip,
+                user=self.fritzbox_user,
+                password=self.fritzbox_password,
+                timeout=10.0,
+                use_cache=True,
+            )
+        return self._fc
+
     def collect_connection_speeds(self):
         """Collect connection speeds via TR-064 API."""
         try:
             speed_start = time.time()
-            addon_info = self._fc.call_action("WANCommonIFC1", "GetAddonInfos")
+            fc = self._get_fritz_connection()
+            addon_info = fc.call_action("WANCommonIFC1", "GetAddonInfos")
 
             if "NewByteSendRate" in addon_info:
                 us_current = float(addon_info["NewByteSendRate"]) * 8
@@ -342,7 +371,7 @@ class FritzboxCollector:
                 ds_current = float(addon_info["NewByteReceiveRate"]) * 8
                 self.connection_download_speed_bps.set(ds_current)
 
-            link_props = self._fc.call_action(
+            link_props = fc.call_action(
                 "WANCommonInterfaceConfig1", "GetCommonLinkProperties"
             )
 
@@ -392,8 +421,9 @@ class FritzboxCollector:
     def collect_lan_hosts(self):
         try:
             hosts = {}
+            fc = self._get_fritz_connection()
             try:
-                path = self._fc.call_action("Hosts1", "X_AVM-DE_GetHostListPath")[
+                path = fc.call_action("Hosts1", "X_AVM-DE_GetHostListPath")[
                     "NewX_AVM-DE_HostListPath"
                 ]
                 response = self._http_session.get(
@@ -412,11 +442,11 @@ class FritzboxCollector:
                         "active": str(int((item.findtext("Active") or "0") == "1")),
                     }
             except Exception:
-                count_result = self._fc.call_action("Hosts1", "GetHostNumberOfEntries")
+                count_result = fc.call_action("Hosts1", "GetHostNumberOfEntries")
                 count = int(count_result.get("NewHostNumberOfEntries", 0))
                 for i in range(count):
                     try:
-                        entry = self._fc.call_action(
+                        entry = fc.call_action(
                             "Hosts1", "GetGenericHostEntry", NewIndex=i
                         )
                         mac = (entry.get("NewMACAddress") or "").upper().strip()
@@ -441,9 +471,9 @@ class FritzboxCollector:
                     active=h["active"],
                 ).set(1)
 
-            logger.info(f"LAN host collection: {len(hosts)} hosts")
+            logger.info("LAN host collection: %d hosts", len(hosts))
         except Exception as e:
-            logger.warning(f"LAN host collection failed: {e}")
+            logger.warning("LAN host collection failed: %s", e)
 
     def collect(self):
         """Main collection method called by Prometheus scraper."""
@@ -496,9 +526,9 @@ class FritzboxCollector:
     def _save_state(self):
         """Persist state to file."""
         try:
-            os.makedirs(
-                os.path.dirname(self._state_file), exist_ok=True
-            ) if os.path.dirname(self._state_file) else None
+            dirname = os.path.dirname(self._state_file)
+            if dirname:
+                os.makedirs(dirname, exist_ok=True)
             data = {
                 "corr_errors": self._previous_corr_errors,
                 "uncorr_errors": self._previous_uncorr_errors,
@@ -506,7 +536,7 @@ class FritzboxCollector:
             with open(self._state_file, "w") as f:
                 json.dump(data, f)
         except Exception as e:
-            logger.warning(f"Failed to save state: {e}")
+            logger.warning("Failed to save state: %s", e)
 
     def _parse_frequency(self, freq_str):
         """Parse frequency string robustly, handling various formats.
