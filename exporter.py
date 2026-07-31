@@ -39,6 +39,10 @@ class FritzboxCollector:
         self._cached_sid = None
         self._http_session = requests.Session()
         self._fc: FritzConnection | None = None
+        self._fc_created_at = 0.0
+        self._fc_max_age_seconds = int(
+            os.environ.get("TR064_CONNECTION_MAX_AGE_SECONDS", "600")
+        )
         self._qam_pattern = re.compile(r"(\d+)")
         self._freq_pattern = re.compile(r"[\d.,]+")
         self._collect_lock = threading.Lock()
@@ -383,8 +387,17 @@ class FritzboxCollector:
             return
 
     def _get_fritz_connection(self) -> FritzConnection:
-        """Return a FritzConnection, creating it lazily if needed."""
-        if self._fc is None:
+        """Return a FritzConnection, rotating it periodically.
+
+        A long-lived TR-064 session occasionally starts returning stale
+        GetAddonInfos data from the FritzBox without raising an error, so
+        the underlying connection is recreated periodically to bound how
+        long that can go unnoticed.
+        """
+        now = time.monotonic()
+        if self._fc is None or (now - self._fc_created_at) >= self._fc_max_age_seconds:
+            if self._fc is not None:
+                self._fc.session.close()
             self._fc = FritzConnection(
                 address=self.fritzbox_ip,
                 user=self.fritzbox_user,
@@ -392,6 +405,7 @@ class FritzboxCollector:
                 timeout=10.0,
                 use_cache=True,
             )
+            self._fc_created_at = now
         return self._fc
 
     def collect_connection_speeds(self):
