@@ -1,22 +1,23 @@
-#!/usr/bin/env python
 """
 FritzBox DOCSIS Cable Monitoring Exporter for Prometheus
 """
 
+import hashlib
 import json
+import logging
 import os
 import re
-import time
-import hashlib
-import logging
-import requests
 import threading
+import time
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlencode
-from prometheus_client import start_http_server, Gauge, Counter, REGISTRY
-from pingparsing import PingParsing, PingTransmitter
+
+import requests
 from fritzconnection import FritzConnection
+from pingparsing import PingParsing, PingTransmitter
+from prometheus_client import REGISTRY, Counter, Gauge, start_http_server
+from prometheus_client.registry import Collector
 
 # Configure logging
 logging.basicConfig(
@@ -25,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class FritzboxCollector:
+class FritzboxCollector(Collector):
     def __init__(self):
         self.fritzbox_ip = os.environ.get("FRITZBOX_IP", "192.168.178.1")
         self.fritzbox_user = os.environ.get("FRITZBOX_USER")
@@ -39,6 +40,10 @@ class FritzboxCollector:
         self._cached_sid = None
         self._http_session = requests.Session()
         self._fc: FritzConnection | None = None
+        self._fc_created_at = 0.0
+        self._fc_max_age_seconds = int(
+            os.environ.get("TR064_CONNECTION_MAX_AGE_SECONDS", "600")
+        )
         self._qam_pattern = re.compile(r"(\d+)")
         self._freq_pattern = re.compile(r"[\d.,]+")
         self._collect_lock = threading.Lock()
@@ -383,8 +388,17 @@ class FritzboxCollector:
             return
 
     def _get_fritz_connection(self) -> FritzConnection:
-        """Return a FritzConnection, creating it lazily if needed."""
-        if self._fc is None:
+        """Return a FritzConnection, rotating it periodically.
+
+        A long-lived TR-064 session occasionally starts returning stale
+        GetAddonInfos data from the FritzBox without raising an error, so
+        the underlying connection is recreated periodically to bound how
+        long that can go unnoticed.
+        """
+        now = time.monotonic()
+        if self._fc is None or (now - self._fc_created_at) >= self._fc_max_age_seconds:
+            if self._fc is not None:
+                self._fc.session.close()
             self._fc = FritzConnection(
                 address=self.fritzbox_ip,
                 user=self.fritzbox_user,
@@ -392,6 +406,7 @@ class FritzboxCollector:
                 timeout=10.0,
                 use_cache=True,
             )
+            self._fc_created_at = now
         return self._fc
 
     def collect_connection_speeds(self):
