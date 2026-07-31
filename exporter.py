@@ -1,22 +1,23 @@
-#!/usr/bin/env python
 """
 FritzBox DOCSIS Cable Monitoring Exporter for Prometheus
 """
 
+import hashlib
 import json
+import logging
 import os
 import re
-import time
-import hashlib
-import logging
-import requests
 import threading
+import time
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from urllib.parse import urlencode
-from prometheus_client import start_http_server, Gauge, Counter, REGISTRY
-from pingparsing import PingParsing, PingTransmitter
+
+import requests
 from fritzconnection import FritzConnection
+from pingparsing import PingParsing, PingTransmitter
+from prometheus_client import REGISTRY, Counter, Gauge, start_http_server
+from prometheus_client.registry import Collector
 
 # Configure logging
 logging.basicConfig(
@@ -25,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-class FritzboxCollector:
+class FritzboxCollector(Collector):
     def __init__(self):
         self.fritzbox_ip = os.environ.get("FRITZBOX_IP", "192.168.178.1")
         self.fritzbox_user = os.environ.get("FRITZBOX_USER")
