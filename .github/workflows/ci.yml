@@ -24,16 +24,37 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install linting tools
-        run: pip install ruff mypy types-requests
+        run: pip install ruff==0.16.7 mypy==2.3.1 types-requests
 
       - name: Lint with ruff
-        run: ruff check exporter.py
+        run: ruff check exporter.py tests/
 
       - name: Format check with ruff
-        run: ruff format --check exporter.py
+        run: ruff format --check exporter.py tests/
 
       - name: Type check with mypy
-        run: mypy exporter.py --ignore-missing-imports
+        run: mypy exporter.py tests/ --ignore-missing-imports
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest==9.1.1 pytest-cov==7.1.0
+
+      - name: Run tests
+        run: pytest --cov --cov-report=xml --cov-report=term-missing
 
   docker:
     name: Docker Build
@@ -46,6 +67,29 @@ jobs:
       - name: Build Docker image
         run: docker build -t fritzbox-monitoring:test .
 
-      - name: Test container starts
+      - name: Test container serves metrics
         run: |
-          docker run --rm fritzbox-monitoring:test --help || true
+          # Point the scrape at localhost so it fails fast instead of waiting
+          # on a real FritzBox that does not exist in CI.
+          docker run -d --name fritzbox-test -p 18000:8000 \
+            -e FRITZBOX_IP=127.0.0.1 -e PING_TARGET=127.0.0.1 \
+            fritzbox-monitoring:test
+
+          ok=0
+          for _ in $(seq 1 20); do
+            if curl -sf --max-time 20 http://127.0.0.1:18000/metrics -o /tmp/metrics.txt; then
+              ok=1
+              break
+            fi
+            sleep 2
+          done
+
+          docker logs fritzbox-test
+          docker stop fritzbox-test
+
+          if [ "$ok" != "1" ]; then
+            echo "metrics endpoint did not respond"
+            exit 1
+          fi
+
+          grep -q '^fritzbox_up' /tmp/metrics.txt
