@@ -16,16 +16,7 @@ Adds a container healthcheck to the Compose service.
 ### Documentation & Links
 
 - [README](https://github.com/fabianwimberger/fritzbox-monitoring#readme)
-- [Full changelog](https://github.com/fabianwimberger/fritzbox-monitoring/compare/v1.2.4...v1.2.5)
-
-## [v1.2.4] - 2026-10-01
-
-Removes redundant comments and docstrings while retaining explanations of device and connection behavior.
-
-### Documentation & Links
-
-- [README](https://github.com/fabianwimberger/fritzbox-monitoring#readme)
-- [Full changelog](https://github.com/fabianwimberger/fritzbox-monitoring/compare/v1.2.3...v1.2.4)
+- [Full changelog](https://github.com/fabianwimberger/fritzbox-monitoring/compare/v1.2.3...v1.2.5)
 
 ## [v1.2.3] - 2026-07-31
 
