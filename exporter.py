@@ -19,7 +19,6 @@ from pingparsing import PingParsing, PingTransmitter
 from prometheus_client import REGISTRY, Counter, Gauge, start_http_server
 from prometheus_client.registry import Collector
 
-# Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
@@ -290,7 +289,6 @@ class FritzboxCollector(Collector):
         return timings
 
     def _process_upstream_channel(self, channel: dict) -> None:
-        """Process a single upstream channel."""
         channel_id = str(channel.get("channelID", "unknown"))
         if "powerLevel" in channel:
             self.docsis_power_level_up.labels(channel_id=channel_id).set(
@@ -321,7 +319,6 @@ class FritzboxCollector(Collector):
             ).set(multiplex_map.get(channel["multiplex"], 0))
 
     def _process_downstream_channel(self, channel: dict) -> None:
-        """Process a single downstream channel."""
         channel_id = str(channel.get("channelID", "unknown"))
         if "powerLevel" in channel:
             self.docsis_power_level_down.labels(channel_id=channel_id).set(
@@ -445,14 +442,12 @@ class FritzboxCollector(Collector):
             return None
 
     def collect_ping_data(self):
-        """Collect ping statistics."""
         try:
             ping_start = time.time()
             transmitter = PingTransmitter()
             transmitter.destination = self.ping_target
             transmitter.count = 5
             transmitter.deadline = 2
-            # Note: Removed -i 0.2 option as it requires root privileges on many systems
             result = transmitter.ping()
 
             timing = f"ping={(time.time() - ping_start) * 1000:.0f}ms"
@@ -574,7 +569,6 @@ class FritzboxCollector(Collector):
             self._collect_lock.release()
 
     def _load_state(self, key, default):
-        """Load persisted state from file."""
         try:
             if os.path.exists(self._state_file):
                 with open(self._state_file, "r") as f:
@@ -585,7 +579,6 @@ class FritzboxCollector(Collector):
         return default
 
     def _save_state(self):
-        """Persist state to file."""
         try:
             dirname = os.path.dirname(self._state_file)
             if dirname:
