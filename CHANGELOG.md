@@ -5,6 +5,19 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.2.5] - 2026-10-01
+
+Adds a container healthcheck to the Compose service.
+
+### Features
+
+- Check the exporter port every 30 seconds so Compose reports container health.
+
+### Documentation & Links
+
+- [README](https://github.com/fabianwimberger/fritzbox-monitoring#readme)
+- [Full changelog](https://github.com/fabianwimberger/fritzbox-monitoring/compare/v1.2.4...v1.2.5)
+
 ## [v1.2.4] - 2026-10-01
 
 Removes redundant comments and docstrings while retaining explanations of device and connection behavior.
