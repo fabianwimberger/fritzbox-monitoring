@@ -24,16 +24,18 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install linting tools
-        run: pip install '.[dev]'
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install '.[dev]'
 
       - name: Lint with ruff
-        run: ruff check exporter.py tests/
+        run: .venv/bin/python -m ruff check exporter.py tests/
 
       - name: Format check with ruff
-        run: ruff format --check exporter.py tests/
+        run: .venv/bin/python -m ruff format --check exporter.py tests/
 
       - name: Type check with mypy
-        run: mypy exporter.py tests/ --ignore-missing-imports
+        run: .venv/bin/python -m mypy exporter.py tests/ --ignore-missing-imports
 
   test:
     name: Test
@@ -52,10 +54,12 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
-        run: pip install '.[dev]'
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install '.[dev]'
 
       - name: Run tests
-        run: pytest --cov --cov-report=xml --cov-report=term-missing
+        run: .venv/bin/python -m pytest --cov --cov-report=xml --cov-report=term-missing
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
