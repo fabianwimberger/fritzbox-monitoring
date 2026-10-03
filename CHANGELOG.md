@@ -5,6 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.2.6] - 2026-10-03
+
+Centralizes Python dependency declarations and publishes test coverage.
+
+### Dependencies
+
+- Declare runtime and development dependencies in `pyproject.toml` for package installation and container builds.
+- Pin the requests type stubs alongside the existing development dependency versions.
+
+### Testing
+
+- Publish coverage reports to Codecov using GitHub authentication.
+- Run the full checks for pull requests to develop.
+
+### Documentation & Links
+
+- [README](https://github.com/fabianwimberger/fritzbox-monitoring#readme)
+- [Full changelog](https://github.com/fabianwimberger/fritzbox-monitoring/compare/v1.2.5...v1.2.6)
+
 ## [v1.2.5] - 2026-10-01
 
 Adds a container healthcheck to the Compose service.
