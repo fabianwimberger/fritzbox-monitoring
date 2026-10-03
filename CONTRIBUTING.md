@@ -6,6 +6,15 @@
 - **Features:** Open an issue using the feature-request template.
 - **PRs:** Fork, branch from `develop`, keep the change focused, open against `develop`.
 
+```bash
+python -m venv .venv
+.venv/bin/pip install '.[dev]'
+.venv/bin/ruff check exporter.py tests/
+.venv/bin/ruff format --check exporter.py tests/
+.venv/bin/mypy exporter.py tests/ --ignore-missing-imports
+.venv/bin/pytest --cov --cov-report=term-missing
+```
+
 ## Conventions
 
 - Prefix commits semantically (`feat:`, `fix:`, `docs:`, `ci:`, `deps:`).
