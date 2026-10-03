@@ -5,6 +5,20 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.2.7] - 2026-10-03
+
+Isolates Python check dependencies and adds coverage visibility to the README.
+
+### Fixes
+
+- Run linting and tests in virtual environments.
+- Show the Codecov coverage badge alongside the existing README badges.
+
+### Documentation & Links
+
+- [README](https://github.com/fabianwimberger/fritzbox-monitoring#readme)
+- [Full changelog](https://github.com/fabianwimberger/fritzbox-monitoring/compare/v1.2.6...v1.2.7)
+
 ## [v1.2.6] - 2026-10-03
 
 Centralizes Python dependency declarations and publishes test coverage.
