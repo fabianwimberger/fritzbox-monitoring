@@ -137,14 +137,13 @@ If you prefer not to use Docker:
 
 ```bash
 # Create virtual environment
-python -m venv venv
-source venv/bin/activate
+python -m venv .venv
 
 # Install dependencies
-pip install -r requirements.txt
+.venv/bin/pip install .
 
 # Run exporter
-python exporter.py
+.venv/bin/python exporter.py
 ```
 
 ## Prometheus Configuration
@@ -163,7 +162,7 @@ scrape_configs:
 
 - AVM FritzBox with DOCSIS cable connection
 - FritzBox user account (not necessarily admin, but needs access to cable info)
-- Docker & Docker Compose (recommended) or Python 3.9+
+- Docker & Docker Compose (recommended) or Python 3.13+
 - Prometheus (to scrape the exporter)
 - Grafana (optional, for the included dashboard)
 

@@ -4,17 +4,28 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fritzbox-monitoring"
-version = "1.2.5"
+version = "1.2.6"
 description = "Prometheus exporter for AVM FRITZ!Box cable modems"
 readme = "README.md"
 requires-python = ">=3.13"
-dynamic = ["dependencies"]
+dependencies = [
+    "prometheus-client==0.26.0",
+    "pingparsing==1.4.2",
+    "requests==2.34.2",
+    "fritzconnection==1.15.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff==0.16.7",
+    "mypy==2.3.1",
+    "types-requests==2.33.0.20260906",
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+]
 
 [tool.setuptools]
 py-modules = ["exporter"]
-
-[tool.setuptools.dynamic]
-dependencies = { file = ["requirements.txt"] }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
