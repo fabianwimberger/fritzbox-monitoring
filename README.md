@@ -13,15 +13,6 @@ A Prometheus exporter for AVM FritzBox cable modems. Collects DOCSIS signal qual
 
 AVM's web UI shows live DOCSIS values but keeps no history, which makes tracking down intermittent cable issues painful. The FritzBox exposes the same data via its internal endpoints. This exporter scrapes them, serves Prometheus metrics, and ships a Grafana dashboard so signal quality, speeds, and error counters stay visible over time.
 
-## Pipeline
-
-```mermaid
-flowchart LR
-    FB[FritzBox<br/>data.lua + TR-064] --> EX[Exporter<br/>:8000/metrics]
-    EX --> P[Prometheus]
-    P --> G[Grafana]
-```
-
 ## Features
 
 - **DOCSIS signal metrics** — upstream/downstream power levels, SNR, modulation (QAM), frequencies, latency
@@ -62,6 +53,17 @@ cp docker-compose.override.yml.example docker-compose.override.yml
 make build
 make up
 ```
+
+## How It Works
+
+```mermaid
+flowchart LR
+    FB[FritzBox<br/>data.lua + TR-064] --> EX[Exporter<br/>:8000/metrics]
+    EX --> P[Prometheus]
+    P --> G[Grafana]
+```
+
+Each Prometheus scrape triggers a fresh read: DOCSIS channel data from the FritzBox web interface (`data.lua`), link rates via TR-064, and a ping to `PING_TARGET`. Error counters are written to `STATE_FILE` so totals survive a restart.
 
 ## Configuration
 
