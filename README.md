@@ -24,27 +24,14 @@ AVM's web UI shows live DOCSIS values but keeps no history, which makes tracking
 
 ## Quick Start
 
-### 1. Clone the repository
-
 ```bash
 git clone https://github.com/fabianwimberger/fritzbox-monitoring.git
 cd fritzbox-monitoring
-```
-
-### 2. Configure environment variables
-
-```bash
-cp .env.example .env
-# Edit .env with your FritzBox credentials
-```
-
-### 3. Run with Docker Compose
-
-```bash
+cp .env.example .env   # set FRITZBOX_USER and FRITZBOX_PASSWORD
 docker compose up -d
 ```
 
-This pulls the pre-built image `ghcr.io/fabianwimberger/fritzbox-monitoring:latest` (AMD64 and ARM64). The exporter will be available on `http://localhost:8000/metrics`.
+This pulls `ghcr.io/fabianwimberger/fritzbox-monitoring:latest` (AMD64 and ARM64) and serves metrics on `http://localhost:8000/metrics`.
 
 ### Building from source
 
@@ -52,6 +39,14 @@ This pulls the pre-built image `ghcr.io/fabianwimberger/fritzbox-monitoring:late
 cp docker-compose.override.yml.example docker-compose.override.yml
 make build
 make up
+```
+
+### Without Docker
+
+```bash
+python -m venv .venv
+.venv/bin/pip install .
+.venv/bin/python exporter.py
 ```
 
 ## How It Works
@@ -81,51 +76,7 @@ All configuration is done via environment variables:
 
 ## Metrics
 
-### DOCSIS Upstream
-
-| Metric | Labels | Description |
-|--------|--------|-------------|
-| `fritzbox_docsis_upstream_power_level_dbmv` | `channel_id` | Upstream power level (dBmV) |
-| `fritzbox_docsis_upstream_frequency_hz` | `channel_id` | Upstream frequency (Hz) |
-| `fritzbox_docsis_upstream_modulation_qam` | `channel_id` | Upstream modulation (QAM) |
-| `fritzbox_docsis_upstream_multiplex_info` | `channel_id`, `multiplex` | Multiplex method (ATDMA/SCDMA/TDMA) |
-
-### DOCSIS Downstream
-
-| Metric | Labels | Description |
-|--------|--------|-------------|
-| `fritzbox_docsis_downstream_power_level_dbmv` | `channel_id` | Downstream power level (dBmV) |
-| `fritzbox_docsis_downstream_frequency_hz` | `channel_id` | Downstream frequency (Hz) |
-| `fritzbox_docsis_downstream_modulation_qam` | `channel_id` | Downstream modulation (QAM) |
-| `fritzbox_docsis_downstream_snr_db` | `channel_id` | Signal-to-noise ratio (dB) |
-| `fritzbox_docsis_downstream_latency_ms` | `channel_id` | Downstream latency (ms) |
-| `fritzbox_docsis_downstream_corrected_errors_total` | `channel_id` | Corrected errors (Counter) |
-| `fritzbox_docsis_downstream_uncorrected_errors_total` | `channel_id` | Uncorrected errors (Counter) |
-| `fritzbox_up` | none | `1` when the last FritzBox DOCSIS scrape succeeded |
-| `fritzbox_scrape_duration_seconds` | none | Duration of the last FritzBox scrape |
-
-### Connection Speeds
-
-| Metric | Description |
-|--------|-------------|
-| `fritzbox_connection_upload_speed_bps` | Current upload speed (bps) |
-| `fritzbox_connection_download_speed_bps` | Current download speed (bps) |
-| `fritzbox_connection_upload_max_bps` | Max upload link rate (bps) |
-| `fritzbox_connection_download_max_bps` | Max download link rate (bps) |
-
-### Ping
-
-| Metric | Labels | Description |
-|--------|--------|-------------|
-| `fritzbox_ping_rtt_avg_ms` | `target` | Average RTT (ms) |
-| `fritzbox_ping_rtt_min_ms` | `target` | Min RTT (ms) |
-| `fritzbox_ping_rtt_max_ms` | `target` | Max RTT (ms) |
-
-### LAN Hosts
-
-| Metric | Labels | Description |
-|--------|--------|-------------|
-| `fritzbox_lan_host` | `mac`, `name`, `ip`, `interface` | `1` when the FritzBox reports the host as active, otherwise `0` |
+Per-channel DOCSIS upstream and downstream values (power level, frequency, modulation, SNR, error counters), connection speeds, ping RTT, and active LAN hosts, all prefixed `fritzbox_`. The full list with labels is in [docs/metrics.md](docs/metrics.md).
 
 ## Grafana Dashboard
 
@@ -134,29 +85,7 @@ All configuration is done via environment variables:
   <br><em>FritzBox Cable Monitoring dashboard in Grafana</em>
 </p>
 
-Import `grafana-dashboard.json` into your Grafana instance. The dashboard includes panels for:
-
-- Connection speed (current vs max)
-- Ping latency
-- Corrected/uncorrected error rates
-- Downstream/upstream power levels
-- SNR and latency per channel
-- Modulation and frequencies
-
-## Manual Installation
-
-If you prefer not to use Docker:
-
-```bash
-# Create virtual environment
-python -m venv .venv
-
-# Install dependencies
-.venv/bin/pip install .
-
-# Run exporter
-.venv/bin/python exporter.py
-```
+Import `grafana-dashboard.json` into your Grafana instance.
 
 ## Prometheus Configuration
 
@@ -180,20 +109,9 @@ scrape_configs:
 
 ## Troubleshooting
 
-### Authentication failures
-
-- Verify the username exists in the FritzBox UI under *System > FRITZ!Box Users*
-- Ensure the user has permission to access cable information
-- Check that `FRITZBOX_IP` is reachable from the host running the exporter
-
-### No DOCSIS metrics
-
-- Confirm your FritzBox model supports DOCSIS (cable models, not DSL/fiber)
-- The exporter auto-detects DOCSIS 3.0 vs 3.1 channel data
-
-### Ping failures in Docker
-
-The Docker image includes `iputils` for ping support. If running manually, ensure `ping` is available on your system.
+- **Authentication failures** — the user must exist under *System > FRITZ!Box Users* and be allowed to view cable information.
+- **No DOCSIS metrics** — only cable models expose them; DSL and fiber models do not.
+- **Ping fails outside Docker** — `ping` must be available on the host; the image ships `iputils`.
 
 ## License
 
