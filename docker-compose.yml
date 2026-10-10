@@ -1,6 +1,6 @@
 services:
   fritzbox-exporter:
-    build: .
+    image: ghcr.io/fabianwimberger/fritzbox-monitoring:latest
     container_name: fritzbox-exporter
     restart: unless-stopped
     env_file:

@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/fabianwimberger/fritzbox-monitoring/actions/workflows/ci.yml/badge.svg)](https://github.com/fabianwimberger/fritzbox-monitoring/actions)
 [![codecov](https://codecov.io/gh/fabianwimberger/fritzbox-monitoring/branch/main/graph/badge.svg)](https://codecov.io/gh/fabianwimberger/fritzbox-monitoring)
+[![Docker](https://github.com/fabianwimberger/fritzbox-monitoring/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/fabianwimberger/fritzbox-monitoring/pkgs/container/fritzbox-monitoring)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 > **⚠️ Disclaimer**: This is an independent, community-created project. It is **not affiliated with, endorsed by, or sponsored by AVM GmbH**. "AVM", "FRITZ!Box", and associated logos are trademarks of AVM GmbH. Use of these names is solely for identification and compatibility purposes. Use at your own risk.
@@ -28,7 +29,7 @@ flowchart LR
 - **Connection speeds** — real-time upload/download speeds and max link rates via TR-064
 - **Ping monitoring** — RTT measurements to a configurable target
 - **Grafana dashboard** — ready-to-import dashboard included
-- **Docker** — lightweight Alpine-based image
+- **Docker** — lightweight Alpine-based image, pre-built for AMD64 and ARM64
 
 ## Quick Start
 
@@ -52,7 +53,15 @@ cp .env.example .env
 docker compose up -d
 ```
 
-The exporter will be available on `http://localhost:8000/metrics`.
+This pulls the pre-built image `ghcr.io/fabianwimberger/fritzbox-monitoring:latest` (AMD64 and ARM64). The exporter will be available on `http://localhost:8000/metrics`.
+
+### Building from source
+
+```bash
+cp docker-compose.override.yml.example docker-compose.override.yml
+make build
+make up
+```
 
 ## Configuration
 

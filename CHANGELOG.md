@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.3.0] - 2026-10-10
+
+Publishes a pre-built container image for AMD64 and ARM64.
+
+### Features
+
+- Publish the image to `ghcr.io/fabianwimberger/fritzbox-monitoring` for AMD64 and ARM64, tagged `latest`, `main`, the version, and the commit.
+- `docker compose up -d` now pulls the published image instead of building locally.
+- Add `docker-compose.override.yml.example` and a `Makefile` (`make build`, `make up`, `make clean`) for building from source.
+
+### Documentation & Links
+
+- [README](https://github.com/fabianwimberger/fritzbox-monitoring#readme)
+- [Full changelog](https://github.com/fabianwimberger/fritzbox-monitoring/compare/v1.2.7...v1.3.0)
+
 ## [v1.2.7] - 2026-10-03
 
 Isolates Python check dependencies and adds coverage visibility to the README.
