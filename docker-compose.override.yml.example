@@ -1,0 +1,14 @@
+# Copy to docker-compose.override.yml and customize
+# docker-compose.override.yml is gitignored by default
+services:
+  fritzbox-exporter:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fritzbox-monitoring:local
+    # You can also override ports, environment, etc.
+    # ports:
+    #   - "8001:8000"
+
+volumes:
+  fritzbox-exporter-data:

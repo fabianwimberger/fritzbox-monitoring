@@ -1,0 +1,62 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credentials, data and logs
+.env
+*.log
+data/
+
+# Documentation (README.md and LICENSE are needed to build the package)
+CHANGELOG.md
+CODE_OF_CONDUCT.md
+CONTRIBUTING.md
+SECURITY.md
+assets/
+grafana-dashboard.json
+
+# CI/CD
+.github/
+
+# Testing
+tests/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Build artifacts
+Makefile
+docker-compose*.yml
