@@ -44,8 +44,7 @@ make up
 ### Without Docker
 
 ```bash
-python -m venv .venv
-.venv/bin/pip install .
+uv sync
 .venv/bin/python exporter.py
 ```
 
