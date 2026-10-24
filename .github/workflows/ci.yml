@@ -23,10 +23,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+
       - name: Install linting tools
-        run: |
-          python -m venv .venv
-          .venv/bin/python -m pip install '.[dev]'
+        run: uv sync --frozen --extra dev
 
       - name: Lint with ruff
         run: .venv/bin/python -m ruff check exporter.py tests/
@@ -53,10 +54,11 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+
       - name: Install dependencies
-        run: |
-          python -m venv .venv
-          .venv/bin/python -m pip install '.[dev]'
+        run: uv sync --frozen --extra dev
 
       - name: Run tests
         run: .venv/bin/python -m pytest --cov --cov-report=xml --cov-report=term-missing
