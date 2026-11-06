@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v1.3.1] - 2026-11-06
+
+Keeps the Docker build green on dependency pull requests and updates the toolchain.
+
+### Fixes
+
+- The image build wrote the GitHub Actions cache on pull requests, which fails with a read-only token (`cache write denied`) and turned every Dependabot pull request red. The cache is read there and written only on pushes.
+
+### Dependencies
+
+- Python 3.14-alpine → 3.15-alpine in the image.
+- pytest 9.1.1 → 9.2.0, mypy 2.4.0 → 2.4.1, ruff 0.17.2 → 0.17.3, types-requests 2.33.0.20261006 → 2.33.0.20261030.
+- Dependencies are locked with uv.
+
+### Documentation & Links
+
+- [README](https://github.com/fabianwimberger/fritzbox-monitoring#readme)
+
 ## [v1.3.0] - 2026-10-10
 
 Publishes a pre-built container image for AMD64 and ARM64.
