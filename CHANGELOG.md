@@ -134,7 +134,7 @@ FritzBox Monitoring now handles scrape concurrency, counter resets, and LAN host
 
 ## [v1.2.0] - 2026-05-09
 
-Error isolation and authentication robustness for FRITZ!Box monitoring.
+Error isolation and more reliable authentication for FRITZ!Box monitoring.
 
 ### Fixes
 - Channel-level error isolation — one malformed DOCSIS channel no longer kills collection
@@ -151,7 +151,7 @@ Exposes a new metric for joining MAC addresses to host names/IPs, fixes MAC casi
 
 ### Features
 
-- New ``fritzbox_lan_host`` metric exposes MAC ↔ name/IP mappings for joining with other exporters
+- New ``fritzbox_lan_host`` metric exposes MAC to name/IP mappings for joining with other exporters
 
 ### Fixes
 
