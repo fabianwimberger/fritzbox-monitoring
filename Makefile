@@ -1,4 +1,4 @@
-.PHONY: all build up down clean lint format test typecheck
+.PHONY: all build up down clean lint format test typecheck deploy
 
 PYTHON ?= .venv/bin/python
 
@@ -15,6 +15,11 @@ up:
 down:
 	@echo "Stopping services..."
 	@docker compose down
+
+deploy:
+	@git pull --ff-only
+	@$(MAKE) --no-print-directory build
+	@docker compose up -d --wait --wait-timeout 300
 
 clean:
 	@echo "Cleaning up..."
